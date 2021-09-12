@@ -8,6 +8,7 @@ import subprocess
 import re
 from os import path
 from bs4 import BeautifulSoup
+import webbrowser
 
 
 def grab_content(arg):
@@ -131,10 +132,11 @@ def open_browser(link):
         while not re.match('^y$', user_input):
             user_input = input("ready to continue? [y/N] ")
 
-    subprocess.Popen(['google-chrome-stable', mailto],
-                               stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE
-                     )
+    webbrowser.open(mailto, new=0)
+    #subprocess.Popen(['sensible-browser', mailto],
+    #                           stdout=subprocess.PIPE,
+    #                           stderr=subprocess.PIPE
+    #                 )
 #    stdout, stderr = process.communicate()
 
 
