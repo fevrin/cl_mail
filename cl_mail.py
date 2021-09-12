@@ -21,12 +21,14 @@ def grab_content(arg):
     subject:
     body:
     """
+    url = str()
     if validators.url(arg) is True:
         # argument is a URL
         # download CL listing
 
         try:
             response = requests.get(arg)
+            url = arg
         except response.raise_for_status() as e:
             print(e)
 
@@ -40,25 +42,10 @@ def grab_content(arg):
         print(f"error: {arg} is not a valid URL or file")
         sys.exit(1)
 
-    # remove an unwanted div in the posting body
-    contents.find("div", {"class": "print-information print-qrcode-container"}).extract()
-
-    subject = re.sub('<[^>]+>', '', contents.find("span", {"class": "postingtitletext"}).text.strip())
-    subject = subject.join([s for s in subject.splitlines() if s])
-    print(f"subject = '{subject}'")
-    body = re.sub('<[^>]+>', '', contents.find(id="postingbody").text.strip())
-    print(f"body = '{body}'")
-#        print(contents.find("span", {"class": "price"}).string, contents.find(id="postingbody").text)
-    email = "test@example.com"
-
-    if not validators.email(email):
-        print(f"error: '{email}' is not a valid email address")
-        sys.exit(1)
-
-    return email, subject, body
+    return contents, url
 
 
-def generate_mailto(email, subject, body):
+def generate_mailto(arg):
     """
     Generates the `mailto` line
     Args:
@@ -69,18 +56,53 @@ def generate_mailto(email, subject, body):
     Returns:
 
     """
-    arg = sys.argv[1]
-    
-#    try:
-#        validators.url(arg)
-#        url = arg
-#    except ValidationFailure as e:
-#        print(e)
-#        sys.exit(1)
+    contents, url = grab_content(arg)
+
+    # remove an unwanted div in the posting body
+    contents.find("div", {"class": "print-information print-qrcode-container"}).extract()
+
+    # get the subject text
+    subject = re.sub('<[^>]+>', '', contents.find("span", {"class": "postingtitletext"}).text.strip())
+    mapaddress = contents.find("div", {"class": "mapaddress"}).text
+    if mapaddress:
+        subject += f" ({mapaddress})"
+
+    # remove empty lines
+    subject = subject.join([s for s in subject.splitlines() if s])
+    print(f"subject = '{subject}'")
+
+    # get the body text
+    body = re.sub('<[^>]+>', '', contents.find(id="postingbody").text.strip())
+    print(f"body = '{body}'")
+
+    # get any attributes
+    attributes = list()
+    for paragraph in contents.find_all("p", {"class": "attrgroup"}):
+        for attr in paragraph.find_all("span"):
+            attributes.append(attr.text)
+
+    email = "test@example.com"
+
+    if not validators.email(email):
+        print(f"error: '{email}' is not a valid email address")
+        sys.exit(1)
 
     # generate email body using the template
     with open("cl_template.tmpl", 'r') as template:
-        body = f"{template.read()}{body}"
+        body = f"{template.read()}\n{body}"
+
+    if attributes:
+        print()
+        body += "\n\n"
+        for attr in attributes:
+            print(f"* {attr}")
+            body += f"* {attr}\n"
+
+    if url:
+        body += f"\n{url}"
+    else:
+        # make the email a reminder to include the URL
+        email = f"don't forget to add the URL!"
 #    print(ET.tostring(ET.fromstring(response.data).getroot(), encoding='utf-8', method='xml'))
 #    print(listing_content)
 #
@@ -91,23 +113,30 @@ def generate_mailto(email, subject, body):
     params = urllib.parse.urlencode({"subject": subject, "body": body}, quote_via=urllib.parse.quote)
     mailto = f"mailto:{email}?{params}"
 
-    return mailto
+    return mailto, url
 
 
-def open_browser(mailto):
+def open_browser(link):
     """
     Opens the browser with the generated `mailto` value
     Args:
-        mailto ():
+        mailto: the `mailto` string
+        url: the URL of the listing
     """
+    mailto, url = link
     print(f"google-chrome-stable {mailto}")
-    #subprocess.Popen(['google-chrome-stable', mailto],
-    #                           stdout=subprocess.PIPE,
-    #                           stderr=subprocess.PIPE
-    #                           )
+    if not url:
+        print("\ndon't forget to add the URL to the bottom")
+        user_input = input("ready to continue? [y/N] ")
+        while not re.match('^y$', user_input):
+            user_input = input("ready to continue? [y/N] ")
+
+    subprocess.Popen(['google-chrome-stable', mailto],
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE
+                     )
 #    stdout, stderr = process.communicate()
 
 
 if __name__ == "__main__":
-    email, subject, body = grab_content(sys.argv[1])
-    open_browser(generate_mailto(email, subject, body))
+    open_browser(generate_mailto(sys.argv[1]))
