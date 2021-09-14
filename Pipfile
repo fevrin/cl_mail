@@ -11,6 +11,7 @@ utils = "*"
 requests = "*"
 html5validator = "*"
 beautifulsoup4 = "*"
+mypy = "*"
 
 [dev-packages]
 

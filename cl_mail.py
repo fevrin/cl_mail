@@ -9,9 +9,10 @@ import re
 from os import path
 from bs4 import BeautifulSoup
 import webbrowser
+from typing import Tuple, Optional
 
 
-def grab_content(arg):
+def grab_content(arg) -> Tuple[str, Optional[str]]:
     """
     Grabs the HTML content
     Args:
@@ -46,17 +47,17 @@ def grab_content(arg):
     return contents, url
 
 
-def generate_mailto(arg):
+def generate_mailto(arg: str) -> Tuple[str, str]:
     """
     Generates the `mailto` line
     Args:
-        email ():
-        subject ():
-        body ():
+        arg: either a file name or a URL
 
     Returns:
 
     """
+    MAX_HTTP_LENGTH = 5597  # 8163
+    MAX_MAILTO_LENGTH = 2048
     contents, url = grab_content(arg)
 
     # remove an unwanted div in the posting body
@@ -74,7 +75,6 @@ def generate_mailto(arg):
 
     # get the body text
     body = re.sub('<[^>]+>', '', contents.find(id="postingbody").text.strip())
-    print(f"body = '{body}'")
 
     # get any attributes
     attributes = list()
@@ -82,55 +82,77 @@ def generate_mailto(arg):
         for attr in paragraph.find_all("span"):
             attributes.append(attr.text)
 
-    email = "test@example.com"
+    body = re.sub('\n\n\n+', '\n', body)
 
-    if not validators.email(email):
-        print(f"error: '{email}' is not a valid email address")
-        sys.exit(1)
+    email = "test@example.com"
 
     # generate email body using the template
     with open("cl_template.tmpl", 'r') as template:
         body = f"{template.read()}\n{body}"
 
     if attributes:
-        print()
+        print("adding attributes")
         body += "\n\n"
         for attr in attributes:
-            print(f"* {attr}")
             body += f"* {attr}\n"
 
     if url:
         body += f"\n{url}"
     else:
         # make the email a reminder to include the URL
-        email = f"don't forget to add the URL!"
+        email = f"test@dont forget to add the URL.com"
+
+    print(f"body = '{body}'")
 #    print(ET.tostring(ET.fromstring(response.data).getroot(), encoding='utf-8', method='xml'))
 #    print(listing_content)
 #
-#
-#    subject = f"{listing_subject} ({listing_neighborhood}) ({listing_crosstreets})"
-#
-#    link = f"mailto:{email}?subject={subject}&body={body}"
-    params = urllib.parse.urlencode({"subject": subject, "body": body}, quote_via=urllib.parse.quote)
-    mailto = f"mailto:{email}?{params}"
+    # remove whitespace in the email address so it validates properly
+    email = "".join(email.split())
+    if not validators.email(email):
+        print(f"error: '{email}' is not a valid email address")
+        sys.exit(1)
 
+    # HTML encode the URL
+    params = urllib.parse.urlencode({"subject": subject, "body": body}, quote_via=urllib.parse.quote)
+    mailto = f"{email}?{params}"
+
+    mailto_len = len(mailto)
+    if mailto_len <= MAX_MAILTO_LENGTH:
+        mailto = f"mailto:{mailto}"
+    elif mailto_len > MAX_MAILTO_LENGTH:
+        if mailto_len > MAX_HTTP_LENGTH:
+           ask_to_continue(f"URL is too long and will get cut off ({mailto_len} chars)")
+
+        # lots of jank to appease Chrome
+        mailto = f"https://mail.google.com/mail/?extsrc=mailto&url=mailto:{email}%3F{params.replace('&', '%26')}"
+
+        mailto_validation = validators.url(mailto)
+
+        if mailto_validation is not True:
+            print(mailto_validation)
+            sys.exit(1)
+
+    print(f"URL is {mailto_len} chars")
     return mailto, url
+
+
+def ask_to_continue(prompt: str):
+    print(prompt)
+    user_input = input("ready to continue? [y/N] ")
+    while not re.match('^y$', user_input):
+        user_input = input("ready to continue? [y/N] ")
 
 
 def open_browser(link):
     """
     Opens the browser with the generated `mailto` value
     Args:
-        mailto: the `mailto` string
-        url: the URL of the listing
+        link: the `mailto` string and URL (if any)
     """
     mailto, url = link
     print(f"google-chrome-stable {mailto}")
     if not url:
-        print("\ndon't forget to add the URL to the bottom")
-        user_input = input("ready to continue? [y/N] ")
-        while not re.match('^y$', user_input):
-            user_input = input("ready to continue? [y/N] ")
+        ask_to_continue("don't forget to add the URL to the bottom")
 
     webbrowser.open(mailto, new=0)
     #subprocess.Popen(['sensible-browser', mailto],
