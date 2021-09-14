@@ -64,9 +64,9 @@ def generate_mailto(arg):
 
     # get the subject text
     subject = re.sub('<[^>]+>', '', contents.find("span", {"class": "postingtitletext"}).text.strip())
-    mapaddress = contents.find("div", {"class": "mapaddress"}).text
-    if mapaddress:
-        subject += f" ({mapaddress})"
+    mapaddress = contents.find("div", {"class": "mapaddress"})
+    if mapaddress is not None:
+        subject += f" ({mapaddress.text})"
 
     # remove empty lines
     subject = subject.join([s for s in subject.splitlines() if s])
