@@ -47,6 +47,45 @@ def grab_content(arg) -> Tuple[str, Optional[str]]:
     return contents, url
 
 
+def get_subject(contents: str) -> str:
+    # get the subject text
+    subject = re.sub('<[^>]+>', '', contents.find("span", {"class": "postingtitletext"}).text.strip())
+    mapaddress = contents.find("div", {"class": "mapaddress"})
+    if mapaddress is not None:
+        subject += f" ({mapaddress.text})"
+
+    # remove empty lines
+    subject = subject.join([s for s in subject.splitlines() if s])
+    print(f"subject = '{subject}'")
+
+    return subject
+
+
+def get_body(contents: str) -> str:
+    # get the body text
+    body = re.sub('<[^>]+>', '', contents.find(id="postingbody").text.strip())
+
+    # get any attributes
+    attributes = list()
+    for paragraph in contents.find_all("p", {"class": "attrgroup"}):
+        for attr in paragraph.find_all("span"):
+            attributes.append(attr.text)
+
+    body = re.sub('\n\n\n+', '\n', body)
+
+    # generate email body using the template
+    with open("cl_template.tmpl", 'r') as template:
+        body = f"{template.read()}\n{body}"
+
+    if attributes:
+        print("adding attributes")
+        body += "\n\n"
+        for attr in attributes:
+            body += f"* {attr}\n"
+
+    return body
+
+
 def generate_mailto(arg: str) -> Tuple[str, str]:
     """
     Generates the `mailto` line
@@ -63,38 +102,9 @@ def generate_mailto(arg: str) -> Tuple[str, str]:
     # remove an unwanted div in the posting body
     contents.find("div", {"class": "print-information print-qrcode-container"}).extract()
 
-    # get the subject text
-    subject = re.sub('<[^>]+>', '', contents.find("span", {"class": "postingtitletext"}).text.strip())
-    mapaddress = contents.find("div", {"class": "mapaddress"})
-    if mapaddress is not None:
-        subject += f" ({mapaddress.text})"
-
-    # remove empty lines
-    subject = subject.join([s for s in subject.splitlines() if s])
-    print(f"subject = '{subject}'")
-
-    # get the body text
-    body = re.sub('<[^>]+>', '', contents.find(id="postingbody").text.strip())
-
-    # get any attributes
-    attributes = list()
-    for paragraph in contents.find_all("p", {"class": "attrgroup"}):
-        for attr in paragraph.find_all("span"):
-            attributes.append(attr.text)
-
-    body = re.sub('\n\n\n+', '\n', body)
-
+    subject = get_subject(contents)
+    body = get_body(contents)
     email: str = ""
-
-    # generate email body using the template
-    with open("cl_template.tmpl", 'r') as template:
-        body = f"{template.read()}\n{body}"
-
-    if attributes:
-        print("adding attributes")
-        body += "\n\n"
-        for attr in attributes:
-            body += f"* {attr}\n"
 
     if url:
         body += f"\n{url}"
