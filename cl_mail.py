@@ -102,8 +102,8 @@ def generate_mailto(arg: str) -> Tuple[str, str]:
     # remove an unwanted div in the posting body
     contents.find("div", {"class": "print-information print-qrcode-container"}).extract()
 
-    subject = get_subject(contents)
-    body = get_body(contents)
+    subject: str = get_subject(contents)
+    body: str = get_body(contents)
     email: str = ""
 
     if url:
@@ -113,9 +113,7 @@ def generate_mailto(arg: str) -> Tuple[str, str]:
         email = f"test@dont forget to add the URL.com"
 
     print(f"body = '{body}'")
-#    print(ET.tostring(ET.fromstring(response.data).getroot(), encoding='utf-8', method='xml'))
-#    print(listing_content)
-#
+
     # remove whitespace in the email address so it validates properly
     email = "".join(email.split())
     if email and not validators.email(email):
@@ -123,7 +121,15 @@ def generate_mailto(arg: str) -> Tuple[str, str]:
         sys.exit(1)
 
     # HTML encode the URL
-    params = urllib.parse.urlencode({"subject": subject, "body": body}, quote_via=urllib.parse.quote)
+    # lots of jank to appease Chrome
+    params = urllib.parse.urlencode(
+        {"subject": subject, "body": body},
+        safe='/'
+    ) \
+        .replace('&', '%26') \
+        .replace('%2B', '%252B') \
+        .replace(' ', '+')
+
 #    print(f"body = {urllib.parse.quote(body)}")
     mailto = f"{email}?{params}"
 
@@ -134,8 +140,8 @@ def generate_mailto(arg: str) -> Tuple[str, str]:
         if mailto_len > MAX_HTTP_LENGTH:
            ask_to_continue(f"URL is too long and will get cut off ({mailto_len} chars)")
 
-        # lots of jank to appease Chrome
-        mailto = f"https://mail.google.com/mail/?extsrc=mailto&url=mailto:{email}%3F{params.replace('&', '%26').replace('%2B', '%252B')}"
+        mailto = f"https://mail.google.com/mail/?extsrc=mailto&url=mailto:{email}%3F{params}"
+        print(f"length after: {len(mailto)}")
 
         mailto_validation = validators.url(mailto)
 
