@@ -84,7 +84,7 @@ def generate_mailto(arg: str) -> Tuple[str, str]:
 
     body = re.sub('\n\n\n+', '\n', body)
 
-    email = "test@example.com"
+    email: str = ""
 
     # generate email body using the template
     with open("cl_template.tmpl", 'r') as template:
@@ -108,12 +108,13 @@ def generate_mailto(arg: str) -> Tuple[str, str]:
 #
     # remove whitespace in the email address so it validates properly
     email = "".join(email.split())
-    if not validators.email(email):
+    if email and not validators.email(email):
         print(f"error: '{email}' is not a valid email address")
         sys.exit(1)
 
     # HTML encode the URL
     params = urllib.parse.urlencode({"subject": subject, "body": body}, quote_via=urllib.parse.quote)
+#    print(f"body = {urllib.parse.quote(body)}")
     mailto = f"{email}?{params}"
 
     mailto_len = len(mailto)
@@ -124,7 +125,7 @@ def generate_mailto(arg: str) -> Tuple[str, str]:
            ask_to_continue(f"URL is too long and will get cut off ({mailto_len} chars)")
 
         # lots of jank to appease Chrome
-        mailto = f"https://mail.google.com/mail/?extsrc=mailto&url=mailto:{email}%3F{params.replace('&', '%26')}"
+        mailto = f"https://mail.google.com/mail/?extsrc=mailto&url=mailto:{email}%3F{params.replace('&', '%26').replace('%2B', '%252B')}"
 
         mailto_validation = validators.url(mailto)
 
