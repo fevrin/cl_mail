@@ -10,6 +10,7 @@ from os import path
 from bs4 import BeautifulSoup
 import webbrowser
 from typing import Tuple, Optional
+from datetime import datetime
 
 
 def grab_content(arg) -> Tuple[str, Optional[str]]:
@@ -69,7 +70,12 @@ def get_body(contents: str) -> str:
     attributes = list()
     for paragraph in contents.find_all("p", {"class": "attrgroup"}):
         for attr in paragraph.find_all("span"):
-            attributes.append(attr.text)
+            if attr.get('data-date') and datetime.today() >= datetime.strptime(attr.get('data-date'), '%Y-%m-%d'):
+#                print(f"data-date = '{attr.get('data-date')}'")
+#                print(f"data-today_msg = {attr.get('data-today_msg')}")
+                attributes.append(attr.get('data-today_msg'))
+            else:
+                attributes.append(attr.text)
 
     body = re.sub('\n\n\n+', '\n', body)
 
