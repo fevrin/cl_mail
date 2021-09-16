@@ -126,9 +126,8 @@ def generate_mailto(arg: str) -> Tuple[str, str]:
         {"subject": subject, "body": body},
         safe='/'
     ) \
-        .replace('&', '%26') \
-        .replace('%2B', '%252B') \
-        .replace(' ', '+')
+       .replace('&', '%26') \
+       .replace('%2B', '%252B')
 
 #    print(f"body = {urllib.parse.quote(body)}")
     mailto = f"{email}?{params}"
