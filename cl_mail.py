@@ -92,7 +92,7 @@ def get_body(contents: str) -> str:
     return body
 
 
-def generate_mailto(arg: str) -> Tuple[str, str]:
+def generate_mailto(arg: str) -> Tuple[str, Optional[str]]:
     """
     Generates the `mailto` line
     Args:
@@ -104,6 +104,11 @@ def generate_mailto(arg: str) -> Tuple[str, str]:
     MAX_HTTP_LENGTH = 5597  # 8163
     MAX_MAILTO_LENGTH = 2048
     contents, url = grab_content(arg)
+
+    # detect if the listing shows it's been removed
+    if msg := contents.find("div", {"class": "removed"}).text.strip():
+        print(msg)
+        sys.exit(1)
 
     # remove an unwanted div in the posting body
     contents.find("div", {"class": "print-information print-qrcode-container"}).extract()
@@ -160,9 +165,10 @@ def generate_mailto(arg: str) -> Tuple[str, str]:
 
 def ask_to_continue(prompt: str):
     print(prompt)
-    user_input = input("ready to continue? [y/N] ")
-    while not re.match('^y$', user_input):
-        user_input = input("ready to continue? [y/N] ")
+
+    while True:
+        if re.match('^y$', user_input := input("ready to continue? [y/N] ")):
+            break
 
 
 def open_browser(link):
