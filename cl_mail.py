@@ -63,16 +63,26 @@ def get_subject(contents: str) -> str:
 
 
 def get_body(contents: str) -> str:
+    """
+    Returns the body within the passed contents
+    Args:
+        contents (): the posting's contents
+
+    Returns:
+        body: the body of the post
+    """
     # get the body text
-    body = re.sub('<[^>]+>', '', contents.find(id="postingbody").text.strip())
+    body: str = re.sub('<[^>]+>', '', contents.find(id="postingbody").text.strip())
+
+    laundry_regex = re.compile('(^\[ *\] - laundry|(w/d|laundry) in (unit|bldg))')
 
     # get any attributes
     attributes = list()
     for paragraph in contents.find_all("p", {"class": "attrgroup"}):
         for attr in paragraph.find_all("span"):
             if attr.get('data-date') and datetime.today() >= datetime.strptime(attr.get('data-date'), '%Y-%m-%d'):
-#                print(f"data-date = '{attr.get('data-date')}'")
-#                print(f"data-today_msg = {attr.get('data-today_msg')}")
+#                print(f"{attr.get('data-date') = }")
+#                print(f"{attr.get('data-today_msg') = }")
                 attributes.append(attr.get('data-today_msg'))
             else:
                 attributes.append(attr.text)
@@ -80,8 +90,13 @@ def get_body(contents: str) -> str:
     body = re.sub('\n\n\n+', '\n', body)
 
     # generate email body using the template
+    lines: str = ""
     with open("cl_template.tmpl", 'r') as template:
-        body = f"{template.read()}\n{body}"
+        for line in template:
+            if not laundry_regex.match(line):
+                lines += line
+        if lines:
+            body = f"{lines}\n{body}"
 
     if attributes:
         print("adding attributes")
@@ -106,8 +121,8 @@ def generate_mailto(arg: str) -> Tuple[str, Optional[str]]:
     contents, url = grab_content(arg)
 
     # detect if the listing shows it's been removed
-    if msg := contents.find("div", {"class": "removed"}).text.strip():
-        print(msg)
+    if msg := contents.find("div", {"class": "removed"}):
+        print(msg.text.strip())
         sys.exit(1)
 
     # remove an unwanted div in the posting body
@@ -140,7 +155,7 @@ def generate_mailto(arg: str) -> Tuple[str, Optional[str]]:
        .replace('&', '%26') \
        .replace('%2B', '%252B')
 
-#    print(f"body = {urllib.parse.quote(body)}")
+#    print(f"{urllib.parse.quote(body) = }")
     mailto = f"{email}?{params}"
 
     mailto_len = len(mailto)
