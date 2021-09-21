@@ -149,7 +149,7 @@ def generate_mailto(arg: str) -> Tuple[str, Optional[str]]:
     # HTML encode the URL
     # lots of jank to appease Chrome
     params = urllib.parse.urlencode(
-        {"subject": subject, "body": body},
+        {"subject": urllib.parse.quote(subject), "body": body},
         safe='/'
     ) \
        .replace('&', '%26') \
