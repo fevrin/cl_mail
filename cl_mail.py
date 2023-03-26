@@ -87,13 +87,18 @@ def get_body(contents: str) -> str:
             else:
                 attributes.append(attr.text)
 
+    HAS_LAUNDRY: int = 0
+    for attr in attributes:
+        if laundry_regex.match(attr):
+            HAS_LAUNDRY = 1
+
     body = re.sub('\n\n\n+', '\n', body)
 
     # generate email body using the template
     lines: str = ""
     with open("cl_template.tmpl", 'r') as template:
         for line in template:
-            if not laundry_regex.match(line):
+            if not HAS_LAUNDRY == 1 or not laundry_regex.match(line):
                 lines += line
         if lines:
             body = f"{lines}\n{body}"
@@ -149,7 +154,7 @@ def generate_mailto(arg: str) -> Tuple[str, Optional[str]]:
     # HTML encode the URL
     # lots of jank to appease Chrome
     params = urllib.parse.urlencode(
-        {"subject": subject, "body": body},
+        {"subject": urllib.parse.quote(subject), "body": body},
         safe='/'
     ) \
        .replace('&', '%26') \
@@ -197,7 +202,7 @@ def open_browser(link):
     if not url:
         ask_to_continue("don't forget to add the URL to the bottom")
 
-    webbrowser.open(mailto, new=0)
+    #webbrowser.open(mailto, new=0)
     #subprocess.Popen(['sensible-browser', mailto],
     #                           stdout=subprocess.PIPE,
     #                           stderr=subprocess.PIPE

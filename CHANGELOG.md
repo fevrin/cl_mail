@@ -1,5 +1,29 @@
 # CHANGELOG
 
+## v1.5.2
+
+### 2023-03-26 (Sun, Mar 26, 2023)
+#### example.tmpl
+* add example template file
+
+#### README.md
+* add content
+
+#### cl_mail.py
+* remove laundry from template checklist if the post indicates it's included
+
+#### Pipfile
+* update python version to use
+
+#### Pipfile.lock
+* update package versions
+
+## v1.5.1
+
+### 2021-09-21 (Tue, Sep 21, 2021)
+#### cl_mail.py:
+* fixed an issue with ampersands in the subject not being interpreted correctly
+
 ## v1.5.0
 
 ### Sun Sep 19 01:51:21 2021 -0400
