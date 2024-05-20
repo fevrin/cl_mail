@@ -12,6 +12,7 @@ requests = "*"
 html5validator = "*"
 beautifulsoup4 = "*"
 mypy = "*"
+pre-commit = "*"
 
 [dev-packages]
 
