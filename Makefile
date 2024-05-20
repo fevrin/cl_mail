@@ -53,8 +53,8 @@ lint-cleanup: ## Linting: Clean up any leftover docker continers from linting
 		docker volume rm "$${volume}"; \
 	done
 
-.PHONY: pre-commit-install
-pre-commit-install: ## Linting: Install pre-commit
+.PHONY: pipenv-install
+pipenv-install: ## Linting: Install pipenv
 	-@echo
 	-@echo '=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-='
 	-@echo $(shell echo '$@' | tr '[:lower:]' '[:upper:]')
@@ -63,15 +63,41 @@ pre-commit-install: ## Linting: Install pre-commit
 	-@command -v -- pipenv >/dev/null 2>&1 || pip3 install pipenv
 	-@if command -v -- pipenv >/dev/null 2>&1; then \
 		echo "$(shell pipenv --version) installed"; \
-		if pipenv run pre-commit -V >/dev/null 2>&1; then \
-			echo "$(shell pipenv run pre-commit -V) installed"; \
-		else \
-			echo "installing pre-commit..." && \
-				pipenv install pre-commit; \
-		fi; \
 	else \
 	  echo "error: install 'pipenv', then re-run 'make $@'"; \
 	fi
+
+.PHONY: pre-commit-install
+pre-commit-install: pipenv-install ## Linting: Install pre-commit
+	-@echo
+	-@echo '=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-='
+	-@echo $(shell echo '$@' | tr '[:lower:]' '[:upper:]')
+	-@echo '=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-='
+	-@echo
+	-@if pipenv run pre-commit -V >/dev/null 2>&1; then \
+		echo "$(shell pipenv run pre-commit -V) installed"; \
+	else \
+		echo "installing pre-commit..." && \
+			pipenv install pre-commit; \
+		echo "$(shell pipenv run pre-commit -V) installed"; \
+	fi;
+
+.PHONY: pytest-install
+pytest-install: pipenv-install ## Linting: Install pytest
+	-@echo
+	-@echo '=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-='
+	-@echo $(shell echo '$@' | tr '[:lower:]' '[:upper:]')
+	-@echo '=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-='
+	-@echo
+	-@if pipenv run pytest -V >/dev/null 2>&1; then \
+		echo "$$(pipenv run pytest -V) installed"; \
+	else \
+		echo "installing pytest..." && \
+			pipenv install --dev pytest; \
+		echo "$$(pipenv run pytest -V) installed"; \
+		echo "installing pytest-mock..." && \
+			pipenv install --dev pytest-mock; \
+	fi;
 
 .PHONY: pre-commit-install-hooks
 pre-commit-install-hooks: pre-commit-install ## Linting: Install pre-commit hooks
@@ -94,3 +120,7 @@ pre-commit: pre-commit-install ## Linting: Lints all files changed between the d
 .PHONY: act # runs nektos/act
 act:
 	gh act --verbose
+
+.PHONY: tests
+tests: pytest-install ## Tests: runs pytest tests
+	-@pipenv run python -m pytest # required to do it this way (https://stackoverflow.com/questions/10253826/path-issue-with-pytest-importerror-no-module-named/34140498#34140498)
