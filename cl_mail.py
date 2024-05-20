@@ -6,7 +6,7 @@ import validators
 import sys
 import subprocess
 import re
-from os import path
+import os
 from bs4 import BeautifulSoup
 import webbrowser
 from typing import Optional, Tuple
@@ -83,6 +83,7 @@ def get_body(contents: str) -> str:
     body: str = re.sub('<[^>]+>', '', contents.find(id="postingbody").text.strip())
 
     laundry_regex = re.compile('(^\[ *\] - Laundry|(w/d|laundry) in (unit|bldg))')
+    name = os.environ.get('NAME', '$NAME')
 
     # get any attributes
     attributes = list()
@@ -109,7 +110,7 @@ def get_body(contents: str) -> str:
         for line in template:
             # don't include the laundry checkbox if the listing mentions the laundry_regex
             if not HAS_LAUNDRY == 1 or not laundry_regex.match(line):
-                lines += line
+                lines += line.replace('$NAME', name)
         if lines:
             body = f"{lines}\n{body}"
 
