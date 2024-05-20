@@ -6,23 +6,24 @@ import validators
 import sys
 import subprocess
 import re
-from os import path
+import os
 from bs4 import BeautifulSoup
 import webbrowser
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 from datetime import datetime
 
 
-def grab_content(arg) -> Tuple[str, Optional[str]]:
+def grab_content(arg: str) -> Tuple[str, Optional[str]]:
     """
-    Grabs the HTML content
+    Grabs the HTML content from a URL
     Args:
-        arg: the user-provided argument on the command line
+        arg: The user-provided URL argument
 
     Returns:
-    email:
-    subject:
-    body:
+        A tuple containing the URL (if provided) and the parsed BeautifulSoup object.
+        email:
+        subject:
+        body:
     """
     url = str()
     if validators.url(arg) is True:
@@ -47,8 +48,15 @@ def grab_content(arg) -> Tuple[str, Optional[str]]:
 
     return contents, url
 
-
 def get_subject(contents: str) -> str:
+    """
+    Returns the body within the passed HTML content.
+    Args:
+        contents: The BeautifulSoup object representing the HTML content.
+
+    Returns:
+        The extracted subject text with leading/trailing whitespace removed.
+    """
     # get the subject text
     subject = re.sub('<[^>]+>', '', contents.find("span", {"class": "postingtitletext"}).text.strip())
     mapaddress = contents.find("div", {"class": "mapaddress"})
@@ -74,18 +82,20 @@ def get_body(contents: str) -> str:
     # get the body text
     body: str = re.sub('<[^>]+>', '', contents.find(id="postingbody").text.strip())
 
-    laundry_regex = re.compile('(^\[ *\] - laundry|(w/d|laundry) in (unit|bldg))')
+    laundry_regex = re.compile('(^\[ *\] - Laundry|(w/d|laundry) in (unit|bldg))')
+    name = os.environ.get('NAME', '$NAME')
 
     # get any attributes
     attributes = list()
-    for paragraph in contents.find_all("p", {"class": "attrgroup"}):
-        for attr in paragraph.find_all("span"):
-            if attr.get('data-date') and datetime.today() >= datetime.strptime(attr.get('data-date'), '%Y-%m-%d'):
+    for paragraph in contents.find_all("div", {"class": "attrgroup"}):
+        for attr in paragraph.find_all("span", class_=["valu", "attr important"]):
+            data_date = attr.get('data-date')
+            if data_date and datetime.today() >= datetime.strptime(data_date, '%Y-%m-%d'):
 #                print(f"{attr.get('data-date') = }")
 #                print(f"{attr.get('data-today_msg') = }")
                 attributes.append(attr.get('data-today_msg'))
             else:
-                attributes.append(attr.text)
+                attributes.append(attr.text.strip())
 
     HAS_LAUNDRY: int = 0
     for attr in attributes:
@@ -98,8 +108,9 @@ def get_body(contents: str) -> str:
     lines: str = ""
     with open("cl_template.tmpl", 'r') as template:
         for line in template:
+            # don't include the laundry checkbox if the listing mentions the laundry_regex
             if not HAS_LAUNDRY == 1 or not laundry_regex.match(line):
-                lines += line
+                lines += line.replace('$NAME', name)
         if lines:
             body = f"{lines}\n{body}"
 
@@ -119,7 +130,7 @@ def generate_mailto(arg: str) -> Tuple[str, Optional[str]]:
         arg: either a file name or a URL
 
     Returns:
-
+        A tuple containing the generated mailto link and the URL.
     """
     MAX_HTTP_LENGTH = 5597  # 8163
     MAX_MAILTO_LENGTH = 2048
