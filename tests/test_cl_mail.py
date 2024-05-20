@@ -1,6 +1,7 @@
 import pytest
 from cl_mail import grab_content, get_subject, get_body, generate_mailto, requests
 from bs4 import BeautifulSoup
+import os
 
 def test_grab_content_url():
   """Tests grabbing content from a valid URL."""
@@ -8,16 +9,14 @@ def test_grab_content_url():
   contents, _ = grab_content(url)
   assert isinstance(contents, BeautifulSoup)
 
-def test_grab_content_file():
+def test_grab_content_file(tmp_path):
   """Tests grabbing content from a valid file."""
   # Create a temporary test file with sample HTML content
-  with open("test_file.html", "w") as f:
+  tmp_file = os.path.join(tmp_path, "test_file.html")
+  with open(tmp_file, "w") as f:
     f.write("<html><body><h1>Test content</h1></body></html>")
   contents, _ = grab_content("test_file.html")
   assert isinstance(contents, BeautifulSoup)
-  # Remove the temporary test file
-  import os
-  os.remove("test_file.html")
 
 def test_grab_content_invalid_argument():
   """Tests handling of invalid arguments (not URL or file)."""
@@ -59,10 +58,11 @@ def test_get_body_with_text():
   body = get_body(str(contents))
   assert body.startswith("This is the body of the craigslist listing.")
 
-def test_get_body_with_laundry():
+def test_get_body_with_laundry(tmp_path):
   """Tests body handling with laundry attribute in template."""
   # Mock the template file content
-  with open("temp_template.tmpl", "w") as f:
+  tmp_file = os.path.join(tmp_path, "temp_template.tmpl")
+  with open(tmp_file, "w") as f:
     f.write("[ ] - laundry in unit\nSome other line")
   contents = BeautifulSoup(
       """<html><body>
@@ -82,18 +82,16 @@ def test_generate_mailto_url():
   assert url_out == url
 
 @pytest.mark.usefixtures("mocker")
-def test_generate_mailto_file(mocker):
+def test_generate_mailto_file(mocker, tmp_path):
   """Tests mailto generation with a valid file (mocking requests)."""
   # Mock the requests library to avoid real network calls during test
+  tmp_file = os.path.join(tmp_path, "test_file.html")
   mocker.patch("cl_mail.requests.get")
-  with open("test_file.html", "w") as f:
+  with open(tmp_file, "w") as f:
     f.write("<html><body></body></html>")
   mailto, url_out = generate_mailto("test_file.html")
   assert mailto.startswith("mailto:")
   assert url_out is None
-  # Remove the temporary test file
-  import os
-  os.remove("test_file.html")
 
 
 def test_generate_mailto_invalid_argument():
