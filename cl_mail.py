@@ -83,7 +83,8 @@ def get_body(contents: str) -> str:
     body: str = re.sub('<[^>]+>', '', contents.find(id="postingbody").text.strip())
 
     laundry_regex = re.compile('(^\[ *\] - Laundry|(w/d|laundry) in (unit|bldg))')
-    name = os.environ.get('NAME', '$NAME')
+    name = os.environ.get('NAME', '${NAME}')
+    email = os.environ.get('EMAIL', '${EMAIL}')
 
     # get any attributes
     attributes = list()
@@ -110,7 +111,9 @@ def get_body(contents: str) -> str:
         for line in template:
             # don't include the laundry checkbox if the listing mentions the laundry_regex
             if not HAS_LAUNDRY == 1 or not laundry_regex.match(line):
-                lines += line.replace('$NAME', name)
+                lines += line \
+                    .replace('${NAME}', name) \
+                    .replace('${EMAIL}', email)
         if lines:
             body = f"{lines}\n{body}"
 
