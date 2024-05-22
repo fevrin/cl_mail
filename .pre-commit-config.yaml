@@ -1,0 +1,78 @@
+exclude: ^ansible/collections/
+# default_language_version:
+#   python: python3.8
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.3.0
+    hooks:
+       # to check the files types these support:
+       # https://github.com/pre-commit/pre-commit-hooks/blob/main/.pre-commit-hooks.yaml
+
+        # Python file tests
+      - id: check-ast
+      - id: check-builtin-literals
+      - id: debug-statements
+        #      - id: double-quote-string-fixer # only Python files
+
+       # text file tests
+      - id: check-json
+      - id: check-executables-have-shebangs
+      - id: check-merge-conflict
+      - id: check-yaml
+        args: [--unsafe]  # Instead of loading the files, simply parse them for syntax.
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: pretty-format-json
+        args:
+           - --autofix
+           - --indent=3
+      - id: trailing-whitespace
+        args:
+           - --markdown-linebreak-ext=md,tpl
+  - repo: https://github.com/koalaman/shellcheck-precommit
+    rev: v0.8.0
+    hooks:
+      - id: shellcheck
+        exclude_types:
+           - zsh
+        args:
+           # more args in .shellcheckrc
+           - --severity=warning
+           - --color=always
+  - repo: https://github.com/scop/pre-commit-shfmt
+    rev: v3.5.1-1
+    hooks:
+      # Choose one of:
+      - id: shfmt         # native (requires Go to build)
+        args:
+          # more args in .editorconfig (though it seems shftm doesn't actually honor those...)
+          - --indent=3         # 0 for tabs (default), >0 for number of spaces
+          - --binary-next-line # binary ops like && and | may start a line
+          - --case-indent      # switch cases will be indented
+          - --keep-padding     # keep column alignment paddings
+          - --list             # list files whose formatting differs from shfmt's
+            #          - --simplify         # simplify the code
+            #          - --minify           # minify the code to reduce its size (implies -s)
+            #          - --diff             # error with a diff when the formatting differs
+        #    - id: shfmt-docker  # Docker image (requires Docker to run)
+  - repo: https://github.com/hadolint/hadolint # for linting Dockerfiles
+    rev: master
+    hooks:
+      - id: hadolint
+  - repo: https://github.com/psf/black # this is for python code
+    rev: 22.3.0
+    hooks:
+      - id: black
+  - repo: https://github.com/PyCQA/flake8 # this is for python code
+    rev: 7.0.0
+    hooks:
+      - id: flake8
+#  - repo: https://github.com/streetsidesoftware/cspell-cli
+#    rev: v6.0.0
+#    hooks:
+#      - id: cspell
+#        # entry: codespell --relative
+#        args: [--relative, --no-progress, --no-summary]
+#        name: Spell check with cspell
+
+#  - repo: https://github.com/adrienverge/yamllint
