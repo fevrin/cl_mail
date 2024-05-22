@@ -25,7 +25,7 @@ def grab_content(arg: str) -> Tuple[str, Optional[str]]:
         subject:
         body:
     """
-    url = str()
+    url = ""
     if validators.url(arg) is True:
         # argument is a URL
         # download CL listing
@@ -95,7 +95,7 @@ def get_body(contents: str) -> str:
     email = os.environ.get("EMAIL", "${EMAIL}")
 
     # get any attributes
-    attributes = list()
+    attributes = []
     for paragraph in contents.find_all("div", {"class": "attrgroup"}):
         for attr in paragraph.find_all("span", class_=["valu", "attr important"]):
             data_date = attr.get("data-date")
