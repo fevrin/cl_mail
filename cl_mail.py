@@ -43,7 +43,7 @@ def grab_content(arg: str) -> Tuple[str, Optional[str]]:
     #    print(ET.tostring(ET.parse(arg).getroot(), encoding='utf-8', method='xml'))
     #    listing_content = xmltojson.parse(ET.tostring(ET.parse(response.data).getroot(), encoding='utf-8', method='xml'))
     else:
-        print(f"error: {arg} is not a valid URL or file")
+        print(f'error: {arg} is not a valid URL or file')
         sys.exit(1)
 
     return contents, url
@@ -62,13 +62,13 @@ def get_subject(contents: str) -> str:
     subject = re.sub('<[^>]+>',
                      '',
                      getattr(
-                         contents.find("span", {"class": "postingtitletext"}),
+                         contents.find('span', {'class': 'postingtitletext'}),
                          'text',
                          None
                      ).strip())
-    mapaddress = contents.find("div", {"class": "mapaddress"})
+    mapaddress = contents.find('div', {'class': 'mapaddress'})
     if mapaddress is not None:
-        subject += f" ({mapaddress.text})"
+        subject += f' ({mapaddress.text})'
 
     # remove empty lines
     subject = subject.join([s for s in subject.splitlines() if s])
@@ -87,7 +87,7 @@ def get_body(contents: str) -> str:
         body: the body of the post
     """
     # get the body text
-    posting_body = contents.find(id="postingbody")
+    posting_body = contents.find(id='postingbody')
     body: str = re.sub('<[^>]+>', '', posting_body.text.strip())
 
     laundry_regex = re.compile('(^\[ *\] - Laundry|(w/d|laundry) in (unit|bldg))')
@@ -96,8 +96,8 @@ def get_body(contents: str) -> str:
 
     # get any attributes
     attributes = list()
-    for paragraph in contents.find_all("div", {"class": "attrgroup"}):
-        for attr in paragraph.find_all("span", class_=["valu", "attr important"]):
+    for paragraph in contents.find_all('div', {'class': 'attrgroup'}):
+        for attr in paragraph.find_all('span', class_=['valu', 'attr important']):
             data_date = attr.get('data-date')
             if data_date and datetime.today() >= datetime.strptime(data_date, '%Y-%m-%d'):
 #                print(f"{attr.get('data-date') = }")
@@ -114,8 +114,8 @@ def get_body(contents: str) -> str:
     body = re.sub('\n\n\n+', '\n', body)
 
     # generate email body using the template
-    lines: str = ""
-    with open("cl_template.tmpl", 'r') as template:
+    lines: str = ''
+    with open('cl_template.tmpl', 'r') as template:
         for line in template:
             # don't include the laundry checkbox if the listing mentions the laundry_regex
             if not HAS_LAUNDRY == 1 or not laundry_regex.match(line):
@@ -123,13 +123,13 @@ def get_body(contents: str) -> str:
                     .replace('${NAME}', name) \
                     .replace('${EMAIL}', email)
         if lines:
-            body = f"{lines}\n{body}"
+            body = f'{lines}\n{body}'
 
     if attributes:
-        print("adding attributes")
-        body += "\n\n"
+        print('adding attributes')
+        body += '\n\n'
         for attr in attributes:
-            body += f"* {attr}\n"
+            body += f'* {attr}\n'
 
     return body
 
@@ -148,30 +148,30 @@ def generate_mailto(arg: str) -> Tuple[str, Optional[str]]:
     contents, url = grab_content(arg)
 
     # detect if the listing shows it's been removed
-    msg = contents.find("div", {"class": "removed"})
+    msg = contents.find('div', {'class': 'removed'})
     if isinstance(msg, str):
         print(msg.text.strip())
         sys.exit(1)
 
     # remove an unwanted div in the posting body
-    bad_div = contents.find("div", {"class": "print-information print-qrcode-container"})
+    bad_div = contents.find('div', {'class': 'print-information print-qrcode-container'})
     if bad_div is not None:
         bad_div.extract()
 
     subject: str = get_subject(contents)
     body: str = get_body(contents)
-    email: str = ""
+    email: str = ''
 
     if url:
-        body += f"\n{url}"
+        body += f'\n{url}'
     else:
         # make the email a reminder to include the URL
-        email = f"test@dont forget to add the URL.com"
+        email = f'test@dont forget to add the URL.com'
 
     print(f"body = '{body}'")
 
     # remove whitespace in the email address so it validates properly
-    email = "".join(email.split())
+    email = ''.join(email.split())
     if email and not validators.email(email):
         print(f"error: '{email}' is not a valid email address")
         sys.exit(1)
@@ -179,24 +179,24 @@ def generate_mailto(arg: str) -> Tuple[str, Optional[str]]:
     # HTML encode the URL
     # lots of jank to appease Chrome
     params = urllib.parse.urlencode(
-        {"subject": urllib.parse.quote(subject), "body": body},
+        {'subject': urllib.parse.quote(subject), 'body': body},
         safe='/'
     ) \
        .replace('&', '%26') \
        .replace('%2B', '%252B')
 
 #    print(f"{urllib.parse.quote(body) = }")
-    mailto = f"{email}?{params}"
+    mailto = f'{email}?{params}'
 
     mailto_len = len(mailto)
     if mailto_len <= MAX_MAILTO_LENGTH:
-        mailto = f"mailto:{mailto}"
+        mailto = f'mailto:{mailto}'
     elif mailto_len > MAX_MAILTO_LENGTH:
         if mailto_len > MAX_HTTP_LENGTH:
-           ask_to_continue(f"URL is too long and will get cut off ({mailto_len} chars)")
+           ask_to_continue(f'URL is too long and will get cut off ({mailto_len} chars)')
 
-        mailto = f"https://mail.google.com/mail/?extsrc=mailto&url=mailto:{email}%3F{params}"
-        print(f"length after: {len(mailto)}")
+        mailto = f'https://mail.google.com/mail/?extsrc=mailto&url=mailto:{email}%3F{params}'
+        print(f'length after: {len(mailto)}')
 
         mailto_validation = validators.url(mailto)
 
@@ -204,7 +204,7 @@ def generate_mailto(arg: str) -> Tuple[str, Optional[str]]:
             print(mailto_validation)
             sys.exit(1)
 
-    print(f"URL is {mailto_len} chars")
+    print(f'URL is {mailto_len} chars')
     return mailto, url
 
 
@@ -212,7 +212,7 @@ def ask_to_continue(prompt: str):
     print(prompt)
 
     while True:
-        if re.match('^y$', user_input := input("ready to continue? [y/N] ")):
+        if re.match('^y$', user_input := input('ready to continue? [y/N] ')):
             break
 
 
@@ -223,7 +223,7 @@ def open_browser(link):
         link: the `mailto` string and URL (if any)
     """
     mailto, url = link
-    print(f"google-chrome-stable {mailto}")
+    print(f'google-chrome-stable {mailto}')
     if not url:
         ask_to_continue("don't forget to add the URL to the bottom")
 
@@ -235,5 +235,5 @@ def open_browser(link):
 #    stdout, stderr = process.communicate()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     open_browser(generate_mailto(sys.argv[1]))
