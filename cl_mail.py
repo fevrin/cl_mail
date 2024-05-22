@@ -37,7 +37,7 @@ def grab_content(arg: str) -> Tuple[str, Optional[str]]:
             print(e)
 
         contents = BeautifulSoup(response.text, 'html.parser')
-    elif path.isfile(arg):
+    elif os.path.isfile(arg):
         with open(arg, 'r') as file:
             contents = BeautifulSoup(file.read(), 'html.parser')
     #    print(ET.tostring(ET.parse(arg).getroot(), encoding='utf-8', method='xml'))
@@ -58,7 +58,14 @@ def get_subject(contents: str) -> str:
         The extracted subject text with leading/trailing whitespace removed.
     """
     # get the subject text
-    subject = re.sub('<[^>]+>', '', contents.find("span", {"class": "postingtitletext"}).text.strip())
+    posting_title =
+    subject = re.sub('<[^>]+>',
+                     '',
+                     getattr(
+                         contents.find("span", {"class": "postingtitletext"}),
+                         'text',
+                         None
+                     ).strip())
     mapaddress = contents.find("div", {"class": "mapaddress"})
     if mapaddress is not None:
         subject += f" ({mapaddress.text})"
@@ -80,7 +87,8 @@ def get_body(contents: str) -> str:
         body: the body of the post
     """
     # get the body text
-    body: str = re.sub('<[^>]+>', '', contents.find(id="postingbody").text.strip())
+    posting_body = contents.find(id="postingbody")
+    body: str = re.sub('<[^>]+>', '', posting_body.text.strip())
 
     laundry_regex = re.compile('(^\[ *\] - Laundry|(w/d|laundry) in (unit|bldg))')
     name = os.environ.get('NAME', '${NAME}')
@@ -140,12 +148,15 @@ def generate_mailto(arg: str) -> Tuple[str, Optional[str]]:
     contents, url = grab_content(arg)
 
     # detect if the listing shows it's been removed
-    if msg := contents.find("div", {"class": "removed"}):
+    msg = contents.find("div", {"class": "removed"})
+    if isinstance(msg, str):
         print(msg.text.strip())
         sys.exit(1)
 
     # remove an unwanted div in the posting body
-    contents.find("div", {"class": "print-information print-qrcode-container"}).extract()
+    bad_div = contents.find("div", {"class": "print-information print-qrcode-container"})
+    if bad_div is not None:
+        bad_div.extract()
 
     subject: str = get_subject(contents)
     body: str = get_body(contents)
